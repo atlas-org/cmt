@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io"
+	//"io"
 	"os"
-	"time"
+	//"time"
 
 	"github.com/atlas-org/cmt"
 )
@@ -15,19 +15,33 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf(">>> starting shell...\n")
-	go func() {
-		for {
-			io.Copy(os.Stdout, sh.Stdout)
-		}
-	}()
 
-	err = sh.Setenv("TOTO", "1")
-	time.Sleep(5 * time.Second)
+	err = sh.Setenv("TOTO", "101")
 	if err != nil {
 		panic(err)
 	}
-	val := sh.Getenv("TOTO")
-	time.Sleep(5 * time.Second)
-
-	fmt.Fprintf(os.Stdout, "TOTO=%v\n", val)
+	err = sh.Setenv("TOTO", "1011")
+	if err != nil {
+		panic(err)
+	}
+	err = sh.Setenv("TOTO", "1012")
+	if err != nil {
+		panic(err)
+	}
+	{
+		val := sh.Getenv("TOTO")
+		fmt.Fprintf(os.Stdout, "TOTO=%q\n", val)
+	}
+	err = sh.Setenv("TOTO", "1011")
+	if err != nil {
+		panic(err)
+	}
+	{
+		val := sh.Getenv("TATA")
+		fmt.Fprintf(os.Stdout, "TATA=%q\n", val)
+	}
+	{
+		val := sh.Getenv("TOTO")
+		fmt.Fprintf(os.Stdout, "TOTO=%q\n", val)
+	}
 }
