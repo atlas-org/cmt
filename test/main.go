@@ -44,4 +44,12 @@ func main() {
 		val := sh.Getenv("TOTO")
 		fmt.Fprintf(os.Stdout, "TOTO=%q\n", val)
 	}
+	err = sh.Source("toto.sh")
+	if err != nil {
+		panic(err)
+	}
+	{
+		val := sh.Getenv("TITI")
+		fmt.Fprintf(os.Stdout, "TITI=%q\n", val)
+	}
 }
