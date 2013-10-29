@@ -74,4 +74,9 @@ func (sh *Shell) Getenv(key string) string {
 	return out
 }
 
+func (sh *Shell) Source(script string) error {
+	_, err := sh.stdin.Write([]byte(fmt.Sprintf(". %s; echo $?\n", script)))
+	return err
+}
+
 // EOF
