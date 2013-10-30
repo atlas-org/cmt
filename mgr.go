@@ -74,6 +74,9 @@ func (mgr *Mgr) create_asetup_cfg(tags string) error {
 		return err
 	}
 	fname := filepath.Join(mgr.topdir, ".asetup.cfg")
+	if mgr.verbose {
+		fmt.Printf("cmt: create [%s]...\n", fname)
+	}
 	cfg, err := os.Create(fname)
 	if err != nil {
 		return err
@@ -104,11 +107,17 @@ testarea=<pwd>
 	}
 	// source it
 	args := []string{"--input=" + fname, tags}
+	if mgr.verbose {
+		fmt.Printf("cmt: sourcing 'asetup'...\n")
+	}
 	err = mgr.sh.Source(mgr.asetup, args...)
 	if err != nil {
 		return fmt.Errorf("cmt: error sourcing 'asetup': %v", err)
 	}
 
+	if mgr.verbose {
+		fmt.Printf("cmt: running 'cmt show path'...\n")
+	}
 	out, err := mgr.sh.Run("cmt", "show", "path")
 	if err != nil {
 		return fmt.Errorf("cmt: error running 'cmt show path': %v", err)
