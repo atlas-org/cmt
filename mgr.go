@@ -1,17 +1,18 @@
 package cmt
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/atlas-org/shell"
 )
 
 // Mgr manages CMT environments
 type Mgr struct {
-	name        string // project name
-	topdir      string // directory holding the whole project/workarea
-	asetup_root string // path to asetup
-	sh          Shell  // subshell where CMT is configured
+	name        string      // project name
+	topdir      string      // directory holding the whole project/workarea
+	asetup_root string      // path to asetup
+	sh          shell.Shell // subshell where CMT is configured
 }
 
 // NewMgr returns a Cmt manager configured with the given tags
@@ -21,24 +22,19 @@ func NewMgr(tags string, verbose bool) (*Mgr, error) {
 		project = "AtlasOffline"
 	}
 
-	cmt_root := os.Getenv("CMTROOT")
-	if cmt_root == "" {
-		return nil, fmt.Errorf("cmt: no CMTROOT env.var\n")
-	}
-	cmt_version := "v1r25"
 	asetup_root := "/afs/cern.ch/atlas/software/dist/AtlasSetup"
 
-	return newMgr(project, cmt_root, cmt_version, asetup_root, tags, verbose)
+	return newMgr(project, asetup_root, tags, verbose)
 }
 
-func newMgr(project, cmt_root, cmt_version, asetup_root, tags string, verbose bool) (*Mgr, error) {
+func newMgr(project, asetup_root, tags string, verbose bool) (*Mgr, error) {
 
 	topdir, err := ioutil.TempDir("", "atl-cmt-mgr-")
 	if err != nil {
 		return nil, err
 	}
 
-	sh, err := NewShell()
+	sh, err := shell.New()
 	if err != nil {
 		return nil, err
 	}
