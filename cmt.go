@@ -7,8 +7,8 @@ import (
 )
 
 type Cmt struct {
-	sh shell.Shell // environment configured for cmt
-	bin string // path to cmt.exe
+	sh  shell.Shell // environment configured for cmt
+	bin string      // path to cmt.exe
 }
 
 func New(sh shell.Shell) (*Cmt, error) {
@@ -18,7 +18,7 @@ func New(sh shell.Shell) (*Cmt, error) {
 	}
 	bin := string(bytes.Trim(out, "\n"))
 	return &Cmt{
-		sh: sh,
+		sh:  sh,
 		bin: bin,
 	}, nil
 }
