@@ -8,7 +8,7 @@ import (
 	"github.com/atlas-org/cmt"
 )
 
-const verbose = false
+const verbose = true
 
 func main() {
 	fmt.Printf("::: setting up a CMT environment...\n")
