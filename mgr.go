@@ -58,13 +58,65 @@ func newMgr(project, asetup_root, tags string, verbose bool) (*Mgr, error) {
 	return mgr, nil
 }
 
-func (mgr *Mgr) init() error {
+func (mgr *Mgr) init(tags string) error {
 	var err error
+	err = mgr.create_asetup_cfg(tags)
+	if err != nil {
+		return err
+	}
 	return err
 }
 
-func (mgr *Mgr) create_asetup_cfg() error {
+func (mgr *Mgr) create_asetup_cfg(tags string) error {
 	var err error
+	err = mgr.sh.Chdir(mgr.topdir)
+	if err != nil {
+		return err
+	}
+	fname := filepath.Join(mgr.topdir, ".asetup.cfg")
+	cfg, err := os.Create(fname)
+	if err != nil {
+		return err
+	}
+	defer cfg.Close()
+	_, err = cfg.WriteString(`
+[defaults]
+opt = True
+lang = C
+hastest = True  ## to prepend pwd to cmtpath
+pedantic = True
+runtime = True
+setup = True
+os = slc6
+save = True
+testarea=<pwd>
+`)
+	if err != nil {
+		return err
+	}
+	err = cfg.Sync()
+	if err != nil {
+		return err
+	}
+	err = cfg.Close()
+	if err != nil {
+		return err
+	}
+	// source it
+	args := []string{"--input=" + fname, tags}
+	err = mgr.sh.Source(mgr.asetup, args...)
+	if err != nil {
+		return fmt.Errorf("cmt: error sourcing 'asetup': %v", err)
+	}
+
+	out, err := mgr.sh.Run("cmt", "show", "path")
+	if err != nil {
+		return fmt.Errorf("cmt: error running 'cmt show path': %v", err)
+	}
+	if mgr.verbose {
+		fmt.Printf("cmt: 'cmt show path':\n%v\n===EOF===\n", string(out))
+	}
+
 	return err
 }
 
