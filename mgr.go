@@ -63,4 +63,8 @@ func (mgr *Mgr) create_asetup_cfg() error {
 	return err
 }
 
+func (mgr *Mgr) Delete() error {
+	return mgr.sh.Delete()
+}
+
 // EOF
