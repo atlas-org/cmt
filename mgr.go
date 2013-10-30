@@ -121,7 +121,38 @@ testarea=<pwd>
 }
 
 func (mgr *Mgr) Delete() error {
-	return mgr.sh.Delete()
+	return combineErrors(
+		os.RemoveAll(mgr.topdir),
+		mgr.sh.Delete(),
+	)
+}
+
+type merror struct {
+	errs []error
+}
+
+func (err merror) Error() string {
+	o := make([]string, 0, len(err.errs))
+	for i, e := range err.errs {
+		o = append(
+			o,
+			fmt.Sprintf("[%d]: %v", i, e),
+		)
+	}
+	return strings.Join(o, "\n")
+}
+
+func combineErrors(errs ...error) error {
+	stack := make([]error, 0, len(errs))
+	for _, err := range errs {
+		if err != nil {
+			stack = append(stack, err)
+		}
+	}
+	if len(stack) == 0 {
+		return nil
+	}
+	return merror{stack}
 }
 
 // EOF
