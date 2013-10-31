@@ -10,8 +10,8 @@ import (
 	"github.com/atlas-org/shell"
 )
 
-// Mgr manages CMT environments
-type Mgr struct {
+// Setup manages a CMT environment
+type Setup struct {
 	name    string      // project name
 	topdir  string      // directory holding the whole project/workarea
 	asetup  string      // path to asetup.sh
@@ -19,8 +19,8 @@ type Mgr struct {
 	verbose bool
 }
 
-// NewMgr returns a Cmt manager configured with the given tags
-func NewMgr(tags string, verbose bool) (*Mgr, error) {
+// NewSetup returns a Cmt Setup configured with the given tags
+func NewSetup(tags string, verbose bool) (*Setup, error) {
 	project := os.Getenv("AtlasProject")
 	if project == "" {
 		project = "AtlasOffline"
@@ -28,10 +28,10 @@ func NewMgr(tags string, verbose bool) (*Mgr, error) {
 
 	asetup_root := "/afs/cern.ch/atlas/software/dist/AtlasSetup"
 
-	return newMgr(project, asetup_root, tags, verbose)
+	return newSetup(project, asetup_root, tags, verbose)
 }
 
-func newMgr(project, asetup_root, tags string, verbose bool) (*Mgr, error) {
+func newSetup(project, asetup_root, tags string, verbose bool) (*Setup, error) {
 
 	topdir, err := ioutil.TempDir("", "atl-cmt-mgr-")
 	if err != nil {
@@ -43,7 +43,7 @@ func newMgr(project, asetup_root, tags string, verbose bool) (*Mgr, error) {
 		return nil, err
 	}
 
-	mgr := &Mgr{
+	mgr := &Setup{
 		name:    project,
 		topdir:  topdir,
 		asetup:  filepath.Join(asetup_root, "scripts", "asetup.sh"),
@@ -58,7 +58,7 @@ func newMgr(project, asetup_root, tags string, verbose bool) (*Mgr, error) {
 	return mgr, nil
 }
 
-func (mgr *Mgr) init(tags string) error {
+func (mgr *Setup) init(tags string) error {
 	var err error
 	err = mgr.create_asetup_cfg(tags)
 	if err != nil {
@@ -67,7 +67,7 @@ func (mgr *Mgr) init(tags string) error {
 	return err
 }
 
-func (mgr *Mgr) create_asetup_cfg(tags string) error {
+func (mgr *Setup) create_asetup_cfg(tags string) error {
 	var err error
 	err = mgr.sh.Chdir(mgr.topdir)
 	if err != nil {
@@ -129,12 +129,16 @@ testarea=<pwd>
 	return err
 }
 
-func (mgr *Mgr) Delete() error {
+func (mgr *Setup) Delete() error {
 	return combineErrors(
 		os.RemoveAll(mgr.topdir),
 		mgr.sh.Delete(),
 	)
 }
+
+// func (mgr *Setup) Shell() shell.Shell {
+// 	return mgr.sh
+// }
 
 type merror struct {
 	errs []error

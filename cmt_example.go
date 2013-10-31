@@ -5,17 +5,31 @@ package main
 import (
 	"fmt"
 
-	"github.com/atlas-org/cmt"
+	gocmt "github.com/atlas-org/cmt"
 )
 
 const verbose = true
 
 func main() {
 	fmt.Printf("::: setting up a CMT environment...\n")
-	mgr, err := cmt.NewMgr("rel1,devval", verbose)
+	setup, err := gocmt.NewSetup("rel1,devval", verbose)
 	if err != nil {
 		panic(err)
 	}
-	defer mgr.Delete()
+	defer setup.Delete()
+
+	cmt, err := gocmt.New(setup)
+	if err != nil {
+		panic(err)
+	}
+
+	pkg := "Control/AthenaKernel"
+	fmt.Printf("checkout [%s]...\n", pkg)
+	err = cmt.CheckOut(pkg, "")
+	if err != nil {
+		panic(err)
+	}
 
 }
+
+// EOF

@@ -2,24 +2,28 @@ package cmt
 
 import (
 	"bytes"
-
-	"github.com/atlas-org/shell"
+	"encoding/xml"
+	"log"
+	"os"
+	"strings"
 )
 
 type Cmt struct {
-	sh  shell.Shell // environment configured for cmt
-	bin string      // path to cmt.exe
+	env *Setup // environment configured for cmt
+	bin string // path to cmt.exe
+	msg *log.Logger
 }
 
-func New(sh shell.Shell) (*Cmt, error) {
-	out, err := sh.Run("which", "cmt.exe")
+func New(env *Setup) (*Cmt, error) {
+	out, err := env.sh.Run("which", "cmt.exe")
 	if err != nil {
 		return nil, err
 	}
 	bin := string(bytes.Trim(out, "\n"))
 	return &Cmt{
-		sh:  sh,
+		env: env,
 		bin: bin,
+		msg: log.New(os.Stderr, "cmt:  ", 0),
 	}, nil
 }
 
