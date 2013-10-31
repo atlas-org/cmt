@@ -30,6 +30,23 @@ func main() {
 		panic(err)
 	}
 
+	vers := cmt.PackageVersion("Control/AthenaServices")
+	fmt.Printf("==> version =%q\n", vers)
+
+	out, err := cmt.Show("projects")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("==>\n%v\n", string(out))
+
+	projs, err := cmt.Projects()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("projects:\n")
+	for _, p := range projs {
+		fmt.Printf("%v\n", p)
+	}
 }
 
 // EOF
