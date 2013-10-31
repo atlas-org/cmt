@@ -20,11 +20,14 @@ func New(env *Setup) (*Cmt, error) {
 		return nil, err
 	}
 	bin := string(bytes.Trim(out, "\n"))
-	return &Cmt{
+
+	cmt := &Cmt{
 		env: env,
 		bin: bin,
 		msg: log.New(os.Stderr, "cmt:  ", 0),
-	}, nil
+	}
+
+	return cmt, nil
 }
 
 // CheckOut checks out the package 'pkg' with revision 'version'.
