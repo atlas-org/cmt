@@ -1,6 +1,8 @@
 package cmt
 
 import (
+	"encoding/xml"
+	"fmt"
 	"path/filepath"
 )
 
