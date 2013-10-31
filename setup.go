@@ -1,7 +1,9 @@
 package cmt
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,6 +33,55 @@ func NewSetup(tags string, verbose bool) (*Setup, error) {
 	return newSetup(project, asetup_root, tags, verbose)
 }
 
+// NewSetupFromCache returns a Cmt setup from a previously cached environment
+func NewSetupFromCache(fname string, verbose bool) (*Setup, error) {
+	topdir, err := ioutil.TempDir("", "atl-cmt-mgr-")
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("--> 1\n")
+	sh, err := shell.New()
+	if err != nil {
+		return nil, err
+	}
+
+	asetup_root := "/afs/cern.ch/atlas/software/dist/AtlasSetup"
+	project := "AtlasInvalid"
+
+	s := &Setup{
+		name:    project,
+		topdir:  topdir,
+		asetup:  filepath.Join(asetup_root, "scripts", "asetup.sh"),
+		sh:      sh,
+		verbose: verbose,
+	}
+
+	f, err := os.Open(fname)
+	if err != nil {
+		s.Delete()
+		return nil, err
+	}
+	defer f.Close()
+
+	err = s.Load(f)
+	if err != nil {
+		s.Delete()
+		return nil, err
+	}
+
+	s.name = s.sh.Getenv("AtlasProject")
+	s.asetup = s.sh.Getenv("AtlasSetup")
+
+	err = s.init()
+	if err != nil {
+		s.Delete()
+		return nil, err
+	}
+
+	return s, nil
+}
+
 func newSetup(project, asetup_root, tags string, verbose bool) (*Setup, error) {
 
 	topdir, err := ioutil.TempDir("", "atl-cmt-mgr-")
@@ -40,41 +91,47 @@ func newSetup(project, asetup_root, tags string, verbose bool) (*Setup, error) {
 
 	sh, err := shell.New()
 	if err != nil {
+		sh.Delete()
 		return nil, err
 	}
 
-	mgr := &Setup{
+	s := &Setup{
 		name:    project,
 		topdir:  topdir,
 		asetup:  filepath.Join(asetup_root, "scripts", "asetup.sh"),
 		sh:      sh,
 		verbose: verbose,
 	}
-	err = mgr.init(tags)
+	err = s.init()
 	if err != nil {
+		s.Delete()
 		return nil, err
 	}
 
-	return mgr, nil
+	err = s.create_asetup_cfg(tags)
+	if err != nil {
+		s.Delete()
+		return nil, err
+	}
+
+	return s, nil
 }
 
-func (mgr *Setup) init(tags string) error {
+func (s *Setup) init() error {
 	var err error
-	err = mgr.create_asetup_cfg(tags)
+
+	err = s.sh.Chdir(s.topdir)
 	if err != nil {
 		return err
 	}
+
 	return err
 }
 
-func (mgr *Setup) create_asetup_cfg(tags string) error {
+func (s *Setup) create_asetup_cfg(tags string) error {
 	var err error
-	err = mgr.sh.Chdir(mgr.topdir)
-	if err != nil {
-		return err
-	}
-	fname := filepath.Join(mgr.topdir, ".asetup.cfg")
-	if mgr.verbose {
+	fname := filepath.Join(s.topdir, ".asetup.cfg")
+	if s.verbose {
 		fmt.Printf("cmt: create [%s]...\n", fname)
 	}
 	cfg, err := os.Create(fname)
@@ -107,38 +164,107 @@ testarea=<pwd>
 	}
 	// source it
 	args := []string{"--input=" + fname, tags}
-	if mgr.verbose {
-		fmt.Printf("cmt: sourcing 'asetup'...\n")
+	if s.verbose {
+		fmt.Printf("cmt: sourcing 'asetup %v'...\n", args)
 	}
-	err = mgr.sh.Source(mgr.asetup, args...)
+	err = s.sh.Source(s.asetup, args...)
 	if err != nil {
 		return fmt.Errorf("cmt: error sourcing 'asetup': %v", err)
 	}
 
-	if mgr.verbose {
+	if s.verbose {
 		fmt.Printf("cmt: running 'cmt show path'...\n")
 	}
-	out, err := mgr.sh.Run("cmt", "show", "path")
+	out, err := s.sh.Run("cmt", "show", "path")
 	if err != nil {
 		return fmt.Errorf("cmt: error running 'cmt show path': %v", err)
 	}
-	if mgr.verbose {
+	if s.verbose {
 		fmt.Printf("cmt: 'cmt show path':\n%v\n===EOF===\n", string(out))
 	}
 
 	return err
 }
 
-func (mgr *Setup) Delete() error {
+func (s *Setup) Delete() error {
 	return combineErrors(
-		os.RemoveAll(mgr.topdir),
-		mgr.sh.Delete(),
+		os.RemoveAll(s.topdir),
+		s.sh.Delete(),
 	)
 }
 
-// func (mgr *Setup) Shell() shell.Shell {
-// 	return mgr.sh
+// func (s *Setup) Shell() shell.Shell {
+// 	return s.sh
 // }
+
+// Save encodes the current setup in `w` as a JSON dict
+func (s *Setup) Save(w io.Writer) error {
+
+	dict := make(map[string]string)
+	for _, env := range s.sh.Environ() {
+		toks := strings.SplitN(env, "=", 2)
+		k := toks[0]
+		v := toks[1]
+		if k == "_" {
+			continue
+		}
+		v = strings.Replace(v, s.topdir, "@@GO_CMT_TOPDIR@@", -1)
+		dict[k] = v
+	}
+
+	data, err := json.MarshalIndent(&dict, "", "  ")
+	_, err = w.Write(data)
+	return err
+}
+
+// Load restores a setup from `r`
+func (s *Setup) Load(r io.Reader) error {
+	// save current workdir
+	wd, err := s.sh.Getwd()
+	if err != nil {
+		return err
+	}
+	// restore workdir
+	defer s.sh.Chdir(wd)
+
+	tmp, err := ioutil.TempDir("", "atl-cmt-mgr-load-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+
+	fname := filepath.Join(tmp, "store.cmt")
+	f, err := os.Create(fname)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	dec := json.NewDecoder(r)
+	if dec == nil {
+		return fmt.Errorf("cmt.setup: could not create JSON decoder")
+	}
+
+	data := make(map[string]string)
+	err = dec.Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range data {
+		v = strings.Replace(v, "@@GO_CMT_TOPDIR@@", s.topdir, -1)
+		_, err = f.WriteString(fmt.Sprintf("export %s=%q\n", k, v))
+		if err != nil {
+			return err
+		}
+	}
+	err = f.Close()
+	if err != nil {
+		return err
+	}
+
+	return s.sh.Source(fname)
+}
 
 type merror struct {
 	errs []error
