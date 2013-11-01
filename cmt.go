@@ -3,6 +3,7 @@ package cmt
 import (
 	"bytes"
 	"encoding/xml"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -27,6 +28,10 @@ func New(env *Setup) (*Cmt, error) {
 		msg: log.New(os.Stderr, "cmt:  ", 0),
 	}
 
+	dag, err := cmt.ProjectsDag()
+	if len(dag) <= 0 {
+		return nil, fmt.Errorf("cmt: no projects found. corrupted CMT environment ?")
+	}
 	return cmt, nil
 }
 
@@ -160,6 +165,52 @@ func (cmt *Cmt) Projects() (Projects, error) {
 		}
 	}
 	return projects, nil
+}
+
+// ProjectsDag returns the directed-acyclic-graph of dependencies between projects
+func (cmt *Cmt) ProjectsDag() (ProjectsDag, error) {
+	projs, err := cmt.Projects()
+	if err != nil {
+		return nil, err
+	}
+
+	dag := make([]*Project, 0, len(projs))
+	var root *Project
+	nroots := 0
+	for _, p := range projs {
+		if len(p.Uses) == 0 {
+			nroots += 1
+			root = p
+		}
+	}
+	if nroots != 1 {
+		return nil, fmt.Errorf(
+			"cmt.dag: project tree inconsistency (found [%d] roots)",
+			nroots,
+		)
+	}
+	
+	has := func(projs []*Project, p *Project) bool {
+		for _, pp := range projs {
+			if pp == p {
+				return true
+			}
+		}
+		return false
+	}
+
+	var visit func(p *Project, stack *[]*Project)
+	visit = func(p *Project, stack *[]*Project) {
+		if !has(*stack, p) {
+			*stack = append(*stack, p)
+		}
+		for _, pp := range p.Clients {
+			visit(pp, stack)
+		}
+	}
+	visit(root, &dag)
+
+	return ProjectsDag(dag), err
 }
 
 // EOF
