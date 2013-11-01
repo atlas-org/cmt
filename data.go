@@ -63,6 +63,9 @@ func (p *Project) String() string {
 // Projects is the projects (dependency) tree
 type Projects map[string]*Project
 
+// ProjectsDag is the directed-acyclic-graph of projects
+type ProjectsDag []*Project
+
 type xmlTree struct {
 	XMLName xml.Name `xml:"projects"`
 
