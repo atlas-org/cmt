@@ -1,11 +1,13 @@
 package cmt
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/xml"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -202,6 +204,72 @@ func (cmt *Cmt) ProjectsDag() (ProjectsDag, error) {
 	visit(root, &dag)
 
 	return ProjectsDag(dag), err
+}
+
+// Package returns a Cmt package by basename (or nil)
+func (cmt *Cmt) Package(name string) (*Package, error) {
+	dag, err := cmt.ProjectsDag()
+	if err != nil {
+		return nil, err
+	}
+
+	use := []byte("use ")
+	for _, proj := range dag {
+		fname := filepath.Join(
+			proj.Path,
+			project_release(proj),
+			"cmt",
+			"requirements",
+		)
+		f, err := os.Open(fname)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		scan := bufio.NewScanner(f)
+		for scan.Scan() {
+			bline := scan.Bytes()
+			bline = bytes.Trim(bline, " \n")
+			if !bytes.HasPrefix(bline, use) {
+				continue
+			}
+			bline = bline[len(use):]
+			if !bytes.HasPrefix(bline, []byte(name)) {
+				continue
+			}
+			fields := make([]string, 0, 3)
+			for _, tok := range bytes.Split(bline, []byte(" ")) {
+				tok = bytes.Trim(tok, " \n")
+				if len(tok) <= 0 {
+					continue
+				}
+				fields = append(fields, string(tok))
+			}
+			switch len(fields) {
+			case 2:
+				return &Package{
+					Name: fields[0],
+					Version: fields[1],
+					Project: proj.Name,
+				}, nil
+			case 3:
+				return &Package{
+					Name: filepath.Join(fields[2], fields[0]),
+					Version: fields[1],
+					Project: proj.Name,
+				}, nil
+			default:
+				return nil, fmt.Errorf("cmt: malformed requirements file [%s]", fname)
+			}
+		}
+		err = scan.Err()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, err
 }
 
 // EOF
