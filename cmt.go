@@ -190,18 +190,9 @@ func (cmt *Cmt) ProjectsDag() (ProjectsDag, error) {
 		)
 	}
 	
-	has := func(projs []*Project, p *Project) bool {
-		for _, pp := range projs {
-			if pp == p {
-				return true
-			}
-		}
-		return false
-	}
-
 	var visit func(p *Project, stack *[]*Project)
 	visit = func(p *Project, stack *[]*Project) {
-		if !has(*stack, p) {
+		if !has_project(*stack, p) {
 			*stack = append(*stack, p)
 		}
 		for _, pp := range p.Clients {
