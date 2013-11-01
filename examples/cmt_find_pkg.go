@@ -23,17 +23,10 @@ func main() {
 		panic(err)
 	}
 
-	pkg := "Control/AthenaKernel"
-	fmt.Printf("checkout [%s]...\n", pkg)
-	err = cmt.CheckOut(pkg, "")
-	if err != nil {
-		panic(err)
-	}
-
 	vers := cmt.PackageVersion("Control/AthenaServices")
 	fmt.Printf("==> version =%q\n", vers)
 
-	p, err := cmt.Package("AthenaServices")
+	p, err := cmt.Package("Control/AthenaServices")
 	if err != nil {
 		panic(err)
 	}
