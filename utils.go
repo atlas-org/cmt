@@ -1,8 +1,19 @@
 package cmt
 
 import (
-//"fmt"
+	"os"
 )
+
+func path_exists(name string) bool {
+     _, err := os.Stat(name)
+     if err == nil {
+     	return true
+	}
+	if os.IsNotExist(err) {
+	   return false
+	   }
+	   return false
+}
 
 // project_release returns the name of the package holding
 // the list of packages defining the release

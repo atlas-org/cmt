@@ -31,6 +31,9 @@ func New(env *Setup) (*Cmt, error) {
 	}
 
 	dag, err := cmt.ProjectsDag()
+	     if err != nil {
+	     return nil, err
+}	     
 	if len(dag) <= 0 {
 		return nil, fmt.Errorf("cmt: no projects found. corrupted CMT environment ?")
 	}
@@ -151,6 +154,15 @@ func (cmt *Cmt) Projects() (Projects, error) {
 	for _, proj := range data.Projects {
 		pname := proj.Path
 		p := NewProject(proj.Path, proj.Version)
+		if p.Name == "CMTHOME" || p.Name == "CMTUSERCONTEXT" {
+// ignore that guy, it is a special (pain in the neck) one
+// see bug #75846
+// https://savannah.cern.ch/bugs/?75846
+                 continue
+}		
+		if proj.Current == "yes" {
+		   p.current = true
+		}
 		projects[pname] = &p
 	}
 
@@ -180,7 +192,7 @@ func (cmt *Cmt) ProjectsDag() (ProjectsDag, error) {
 	var root *Project
 	nroots := 0
 	for _, p := range projs {
-		if len(p.Uses) == 0 {
+	    	if p.current {
 			nroots += 1
 			root = p
 		}
@@ -221,6 +233,9 @@ func (cmt *Cmt) Package(name string) (*Package, error) {
 			"cmt",
 			"requirements",
 		)
+		if !path_exists(fname) {
+		   continue
+		}
 		f, err := os.Open(fname)
 		if err != nil {
 			return nil, err
@@ -269,7 +284,7 @@ func (cmt *Cmt) Package(name string) (*Package, error) {
 		}
 	}
 
-	return nil, err
+	return nil, fmt.Errorf("cmt: package [%s] not found", name)
 }
 
 // EOF

@@ -30,6 +30,7 @@ type Project struct {
 	Path    string // path to where the project is installed
 	Uses    []*Project
 	Clients []*Project
+	current bool
 }
 
 func NewProject(path, version string) Project {
