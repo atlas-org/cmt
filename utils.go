@@ -1,15 +1,15 @@
 package cmt
 
 import (
-	//"fmt"
+//"fmt"
 )
 
 // project_release returns the name of the package holding
 // the list of packages defining the release
 func project_release(p *Project) string {
-	n,ok := map[string]string{
-		"LCGCMT": "LCG_Release",
-		"dqm-common": "DQMCRelease",
+	n, ok := map[string]string{
+		"LCGCMT":      "LCG_Release",
+		"dqm-common":  "DQMCRelease",
 		"tdaq-common": "TDAQCRelease",
 	}[p.Name]
 	if !ok {
@@ -20,12 +20,12 @@ func project_release(p *Project) string {
 
 // has_project returns true if p is in the slice
 func has_project(projs []*Project, p *Project) bool {
-		for _, pp := range projs {
-			if pp == p {
-				return true
-			}
+	for _, pp := range projs {
+		if pp == p {
+			return true
 		}
-		return false
+	}
+	return false
 }
 
 // EOF

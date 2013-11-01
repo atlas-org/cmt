@@ -191,7 +191,7 @@ func (cmt *Cmt) ProjectsDag() (ProjectsDag, error) {
 			nroots,
 		)
 	}
-	
+
 	var visit func(p *Project, stack *[]*Project)
 	visit = func(p *Project, stack *[]*Project) {
 		if !has_project(*stack, p) {
@@ -249,13 +249,13 @@ func (cmt *Cmt) Package(name string) (*Package, error) {
 			switch len(fields) {
 			case 2:
 				return &Package{
-					Name: fields[0],
+					Name:    fields[0],
 					Version: fields[1],
 					Project: proj.Name,
 				}, nil
 			case 3:
 				return &Package{
-					Name: filepath.Join(fields[2], fields[0]),
+					Name:    filepath.Join(fields[2], fields[0]),
 					Version: fields[1],
 					Project: proj.Name,
 				}, nil
