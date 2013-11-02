@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// TagDiff returns the list of tag differences between 2 releases/nightlies
 func TagDiff(old, new string, verbose bool) ([]string, error) {
 	var err error
 	diff := make([]string, 0)
