@@ -25,6 +25,7 @@ func TagDiff(old, new string, verbose bool) ([]string, error) {
 	}
 
 	ch := make(chan response)
+	defer close(ch)
 
 	for name, tag := range tags {
 		go func(tag, name string, ch chan response) {
