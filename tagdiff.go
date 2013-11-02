@@ -25,7 +25,7 @@ func TagDiff(old, new string, verbose bool) ([]string, error) {
 
 	ch := make(chan response)
 
-	for _, k := range []string{"old", "new"} {
+	for name, tag := range tags {
 		go func(tag, name string, ch chan response) {
 			if verbose {
 				fmt.Printf("::: setup %s env. [%s]...\n", name, tag)
@@ -41,7 +41,7 @@ func TagDiff(old, new string, verbose bool) ([]string, error) {
 				return
 			}
 			ch <- response{name, cmt, nil}
-		}(tags[k], k, ch)
+		}(tag, name, ch)
 	}
 
 	for _ = range cmts {
