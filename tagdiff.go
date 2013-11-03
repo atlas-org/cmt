@@ -34,6 +34,7 @@ func TagDiff(old, new string, verbose bool) ([]string, error) {
 			}
 			env, err := NewSetup(tag, verbose)
 			if err != nil {
+				env.Delete()
 				ch <- response{name, nil, err}
 				return
 			}
