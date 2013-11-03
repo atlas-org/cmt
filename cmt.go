@@ -18,6 +18,15 @@ type Cmt struct {
 }
 
 func New(env *Setup) (*Cmt, error) {
+	var err error
+	if env == nil {
+		verbose := false
+		env, err = newSetup("<local>", "", "", verbose)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	out, err := env.sh.Run("which", "cmt.exe")
 	if err != nil {
 		return nil, err

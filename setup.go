@@ -108,10 +108,12 @@ func newSetup(project, asetup_root, tags string, verbose bool) (*Setup, error) {
 		return nil, err
 	}
 
-	err = s.create_asetup_cfg(tags)
-	if err != nil {
-		s.Delete()
-		return nil, err
+	if asetup_root != "" {
+		err = s.create_asetup_cfg(tags)
+		if err != nil {
+			s.Delete()
+			return nil, err
+		}
 	}
 
 	return s, nil
