@@ -5,16 +5,17 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/gonuts/logger"
 )
 
 type Cmt struct {
 	env *Setup // environment configured for cmt
 	bin string // path to cmt.exe
-	msg *log.Logger
+	msg *logger.Logger
 }
 
 func New(env *Setup) (*Cmt, error) {
@@ -36,7 +37,7 @@ func New(env *Setup) (*Cmt, error) {
 	cmt := &Cmt{
 		env: env,
 		bin: bin,
-		msg: log.New(os.Stderr, "cmt:  ", 0),
+		msg: logger.New("cmt"),
 	}
 
 	dag, err := cmt.ProjectsDag()
@@ -74,19 +75,19 @@ func (cmt *Cmt) CheckOut(pkg, version string) error {
 }
 
 func (cmt *Cmt) errorf(format string, args ...interface{}) {
-	cmt.msg.Printf("ERROR    "+format, args...)
+	cmt.msg.Errorf(format, args...)
 }
 
 func (cmt *Cmt) warnf(format string, args ...interface{}) {
-	cmt.msg.Printf("WARNING  "+format, args...)
+	cmt.msg.Warnf(format, args...)
 }
 
 func (cmt *Cmt) infof(format string, args ...interface{}) {
-	cmt.msg.Printf("INFO     "+format, args...)
+	cmt.msg.Infof(format, args...)
 }
 
 func (cmt *Cmt) debugf(format string, args ...interface{}) {
-	cmt.msg.Printf("DEBUG    "+format, args...)
+	cmt.msg.Debugf(format, args...)
 }
 
 // PackageVersion returns the package version in the current release
