@@ -303,4 +303,48 @@ func (cmt *Cmt) Package(name string) (*Package, error) {
 	return nil, fmt.Errorf("cmt: package [%s] not found", name)
 }
 
+// LatestPackageTag returns the most recent SVN tag of `pkg`
+func (cmt *Cmt) LatestPackageTag(pkg string) (string, error) {
+	svnroot := cmt.env.sh.Getenv("SVNROOT")
+	if svnroot == "" {
+		return "", fmt.Errorf("cmt: SVNROOT not set")
+	}
+	args := []string{"ls", strings.Join([]string{svnroot, pkg, "tags"}, "/")}
+	if strings.HasPrefix(pkg, "Gaudi") {
+		svnroot = cmt.env.sh.Getenv("GAUDISVN")
+		if svnroot == "" {
+			svnroot = "http://svnweb.cern.ch/guest/gaudi"
+		}
+		args = []string{"ls", strings.Join([]string{svnroot, "Gaudi", "tags", pkg}, "/")}
+	}
+	cmt.debugf("running svn %v...\n", args)
+	bout, err := cmt.env.sh.Run("svn", args...)
+	if err != nil {
+		return "", fmt.Errorf("cmt: error running svn %v:\nout:\n%v\nerr: %v",
+			args,
+			string(bout),
+			err,
+		)
+	}
+	tags := []string{}
+	for _, bline := range bytes.Split(bout, []byte("\n")) {
+		bline = bytes.Trim(bline, " \n")
+		tags = append(tags, string(bline))
+	}
+	if len(tags) <= 0 {
+		return "", fmt.Errorf("cmt: empty %s SVN directory", args[1])
+	}
+
+	bname := filepath.Base(pkg)
+
+	// enforce atlas convention of tags (pkgname-xx-yy-zz-ww)
+	tag := ""
+	for _, t := range tags {
+		if strings.HasPrefix(t, bname+"-") {
+			tag = strings.Trim(t, " /\r\n")
+		}
+	}
+	return tag, err
+}
+
 // EOF
