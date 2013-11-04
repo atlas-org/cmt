@@ -274,7 +274,7 @@ func (cmt *Cmt) Package(name string) (*Package, error) {
 			if !bytes.HasPrefix(bline, use) {
 				continue
 			}
-			bline = bline[len(use):]
+			bline = bytes.Trim(bline[len(use):], " \n")
 			if !bytes.HasPrefix(bline, []byte(name)) {
 				continue
 			}
