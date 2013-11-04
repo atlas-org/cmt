@@ -202,10 +202,7 @@ func (s *Setup) Delete() error {
 func (s *Setup) Save(w io.Writer) error {
 
 	dict := make(map[string]string)
-	for _, env := range s.sh.Environ() {
-		toks := strings.SplitN(env, "=", 2)
-		k := toks[0]
-		v := toks[1]
+	for k, v := range s.EnvMap() {
 		if k == "_" {
 			continue
 		}
@@ -265,6 +262,17 @@ func (s *Setup) Load(r io.Reader) error {
 	}
 
 	return s.sh.Source(fname)
+}
+
+func (s *Setup) EnvMap() map[string]string {
+	dict := make(map[string]string)
+	for _, env := range s.sh.Environ() {
+		toks := strings.SplitN(env, "=", 2)
+		k := toks[0]
+		v := toks[1]
+		dict[k] = v
+	}
+	return dict
 }
 
 type merror struct {
