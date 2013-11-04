@@ -20,8 +20,8 @@ func TagDiff(old, new string, verbose bool) ([]string, error) {
 
 	type response struct {
 		name string
-		cmt *Cmt
-		err error
+		cmt  *Cmt
+		err  error
 	}
 
 	ch := make(chan response)
