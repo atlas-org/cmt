@@ -173,6 +173,7 @@ func (cmt *Cmt) Projects() (Projects, error) {
 		if proj.Current == "yes" {
 			p.current = true
 		}
+		p.order = proj.Order
 		projects[pname] = &p
 	}
 
@@ -199,19 +200,24 @@ func (cmt *Cmt) ProjectsDag() (ProjectsDag, error) {
 	}
 
 	dag := make([]*Project, 0, len(projs))
+	omap := make(map[int]*Project, len(projs))
 	var root *Project
-	nroots := 0
 	for _, p := range projs {
-		if p.current {
-			nroots += 1
+		omap[p.order] = p
+	}
+	for i, p := range omap {
+		if len(omap[i].Clients) <= 0 && len(omap[i].Uses) > 0 {
 			root = p
+			break
 		}
 	}
-	if nroots != 1 {
+
+	if root == nil {
 		return nil, fmt.Errorf(
-			"cmt.dag: project tree inconsistency (found [%d] roots)",
-			nroots,
+			"cmt.dag: project tree inconsistency (did not find any suitable root)",
 		)
+	} else {
+		cmt.debugf("root=%s\n", root.Name)
 	}
 
 	var visit func(p *Project, stack *[]*Project)
@@ -219,7 +225,7 @@ func (cmt *Cmt) ProjectsDag() (ProjectsDag, error) {
 		if !has_project(*stack, p) {
 			*stack = append(*stack, p)
 		}
-		for _, pp := range p.Clients {
+		for _, pp := range p.Uses {
 			visit(pp, stack)
 		}
 	}

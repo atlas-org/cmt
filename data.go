@@ -31,6 +31,7 @@ type Project struct {
 	Uses    []*Project
 	Clients []*Project
 	current bool
+	order   int
 }
 
 func NewProject(path, version string) Project {
