@@ -26,6 +26,15 @@ func New(env *Setup) (*Cmt, error) {
 		if err != nil {
 			return nil, err
 		}
+		pwd := env.topdir
+		pwd, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		err = env.sh.Chdir(pwd)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	out, err := env.sh.Run("which", "cmt.exe")
