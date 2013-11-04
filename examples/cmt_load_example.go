@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	gocmt "github.com/atlas-org/cmt"
 )
@@ -12,7 +13,12 @@ const verbose = true
 
 func main() {
 	fmt.Printf("::: loading up a CMT environment...\n")
-	setup, err := gocmt.NewSetupFromCache("store.cmt", verbose)
+	testarea, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	setup, err := gocmt.NewSetupFromCache("store.cmt", testarea, verbose)
 	if err != nil {
 		panic(err)
 	}
