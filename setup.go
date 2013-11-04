@@ -34,10 +34,13 @@ func NewSetup(tags string, verbose bool) (*Setup, error) {
 }
 
 // NewSetupFromCache returns a Cmt setup from a previously cached environment
-func NewSetupFromCache(fname string, verbose bool) (*Setup, error) {
-	topdir, err := ioutil.TempDir("", "atl-cmt-mgr-")
-	if err != nil {
-		return nil, err
+func NewSetupFromCache(fname, topdir string, verbose bool) (*Setup, error) {
+	var err error
+	if topdir == "" {
+		topdir, err = ioutil.TempDir("", "atl-cmt-mgr-")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	sh, err := shell.New()
