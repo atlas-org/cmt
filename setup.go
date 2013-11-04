@@ -40,7 +40,6 @@ func NewSetupFromCache(fname string, verbose bool) (*Setup, error) {
 		return nil, err
 	}
 
-	fmt.Printf("--> 1\n")
 	sh, err := shell.New()
 	if err != nil {
 		return nil, err
