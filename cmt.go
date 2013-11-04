@@ -77,7 +77,7 @@ func (cmt *Cmt) CheckOut(pkg, version string) error {
 		cmt.warnf("%v\n", string(out))
 		return err
 	} else {
-		cmt.infof("## %s [OK]\n", pkg)
+		cmt.debugf("%s [OK]\n", pkg)
 	}
 
 	return err
