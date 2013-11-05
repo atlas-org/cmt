@@ -150,15 +150,26 @@ func (s *Setup) create_asetup_cfg(tags string) error {
 	defer cfg.Close()
 	_, err = cfg.WriteString(`
 [defaults]
+#default32 = True
+#default32 = False       # asetup is now clever enough to choose
+#force32bit = False      # the correct 32/64 default
 opt = True
+gcc47default = True
 lang = C
-hastest = True  ## to prepend pwd to cmtpath
-pedantic = True
+hastest = True           # to prepend pwd to cmtpath
+#pedantic = True         # problematic for kits (missing .stamp files)
 runtime = True
 setup = True
 os = slc6
+#project = AtlasOffline  # offline is the default
 save = True
-testarea=<pwd>
+#standalone = False      # prefer build area instead of kit-release
+#standalone = True       # prefer release area instead of build-area
+testarea=<pwd>           # have the current working directory be the testarea
+cmtbcast = False         # disable cmt-broadcast
+
+[aliases]
+cvmfs = releasesarea=/cvmfs/atlas.cern.ch/software/$CMTCONFIG:/afs/cern.ch/atlas/software/releases; nightliesarea=/cvmfs/atlas-nightlies.cern.ch/repo/sw/nightlies/$CMTCONFIG:/cvmfs/atlas-nightlies.cern.ch/repo/sw/patch_nightlies/$CMTCONFIG:/afs/cern.ch/atlas/software/builds/nightlies; nightliesdirs=<branches>:<branches>-<project>/rel_
 `)
 	if err != nil {
 		return err
