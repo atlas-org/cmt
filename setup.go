@@ -206,10 +206,6 @@ func (s *Setup) Delete() error {
 	)
 }
 
-// func (s *Setup) Shell() shell.Shell {
-// 	return s.sh
-// }
-
 // Save encodes the current setup in `w` as a JSON dict
 func (s *Setup) Save(w io.Writer) error {
 
