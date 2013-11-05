@@ -30,7 +30,9 @@ func NewSetup(tags string, verbose bool) (*Setup, error) {
 	}
 
 	asetup_root := "/afs/cern.ch/atlas/software/dist/AtlasSetup"
-
+	if tags == "" {
+		return newSetup("<local>", "", tags, verbose)
+	}
 	return newSetup(project, asetup_root, tags, verbose)
 }
 
