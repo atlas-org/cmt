@@ -16,6 +16,7 @@ import (
 type Setup struct {
 	name    string      // project name
 	topdir  string      // directory holding the whole project/workarea
+	remove  bool        // switch whether to remove or not the topdir
 	asetup  string      // path to asetup.sh
 	sh      shell.Shell // subshell where CMT is configured
 	verbose bool
@@ -36,11 +37,13 @@ func NewSetup(tags string, verbose bool) (*Setup, error) {
 // NewSetupFromCache returns a Cmt setup from a previously cached environment
 func NewSetupFromCache(fname, topdir string, verbose bool) (*Setup, error) {
 	var err error
+	remove := false
 	if topdir == "" {
 		topdir, err = ioutil.TempDir("", "atl-cmt-mgr-")
 		if err != nil {
 			return nil, err
 		}
+		remove = true
 	}
 
 	sh, err := shell.New()
@@ -54,6 +57,7 @@ func NewSetupFromCache(fname, topdir string, verbose bool) (*Setup, error) {
 	s := &Setup{
 		name:    project,
 		topdir:  topdir,
+		remove:  remove,
 		asetup:  filepath.Join(asetup_root, "scripts", "asetup.sh"),
 		sh:      sh,
 		verbose: verbose,
@@ -100,6 +104,7 @@ func newSetup(project, asetup_root, tags string, verbose bool) (*Setup, error) {
 	s := &Setup{
 		name:    project,
 		topdir:  topdir,
+		remove:  true,
 		asetup:  filepath.Join(asetup_root, "scripts", "asetup.sh"),
 		sh:      sh,
 		verbose: verbose,
@@ -191,8 +196,12 @@ testarea=<pwd>
 }
 
 func (s *Setup) Delete() error {
+	var err error
+	if s.remove {
+		err = os.RemoveAll(s.topdir)
+	}
 	return combineErrors(
-		os.RemoveAll(s.topdir),
+		err,
 		s.sh.Delete(),
 	)
 }
