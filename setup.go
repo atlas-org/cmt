@@ -14,10 +14,11 @@ import (
 
 // Setup manages a CMT environment
 type Setup struct {
-	name    string      // project name
-	topdir  string      // directory holding the whole project/workarea
-	asetup  string      // path to asetup.sh
-	sh      shell.Shell // subshell where CMT is configured
+	name    string // project name
+	topdir  string // directory holding the whole project/workarea
+	remove  bool   // switch to remove or not the topdir
+	asetup  string // path to asetup.sh
+	env     Env    // environment configured for CMT
 	verbose bool
 }
 
@@ -36,16 +37,13 @@ func NewSetup(tags string, verbose bool) (*Setup, error) {
 // NewSetupFromCache returns a Cmt setup from a previously cached environment
 func NewSetupFromCache(fname, topdir string, verbose bool) (*Setup, error) {
 	var err error
+	remove := false
 	if topdir == "" {
 		topdir, err = ioutil.TempDir("", "atl-cmt-mgr-")
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	sh, err := shell.New()
-	if err != nil {
-		return nil, err
+		remove = true
 	}
 
 	asetup_root := "/afs/cern.ch/atlas/software/dist/AtlasSetup"
@@ -54,8 +52,9 @@ func NewSetupFromCache(fname, topdir string, verbose bool) (*Setup, error) {
 	s := &Setup{
 		name:    project,
 		topdir:  topdir,
+		remove:  remove,
 		asetup:  filepath.Join(asetup_root, "scripts", "asetup.sh"),
-		sh:      sh,
+		env:     newEnv(nil),
 		verbose: verbose,
 	}
 
@@ -72,8 +71,8 @@ func NewSetupFromCache(fname, topdir string, verbose bool) (*Setup, error) {
 		return nil, err
 	}
 
-	s.name = s.sh.Getenv("AtlasProject")
-	s.asetup = s.sh.Getenv("AtlasSetup")
+	s.name = s.env.Getenv("AtlasProject")
+	s.asetup = s.env.Getenv("AtlasSetup")
 
 	err = s.init()
 	if err != nil {
@@ -91,17 +90,11 @@ func newSetup(project, asetup_root, tags string, verbose bool) (*Setup, error) {
 		return nil, err
 	}
 
-	sh, err := shell.New()
-	if err != nil {
-		sh.Delete()
-		return nil, err
-	}
-
 	s := &Setup{
 		name:    project,
 		topdir:  topdir,
 		asetup:  filepath.Join(asetup_root, "scripts", "asetup.sh"),
-		sh:      sh,
+		env:     newEnv(nil),
 		verbose: verbose,
 	}
 	err = s.init()
@@ -124,7 +117,7 @@ func newSetup(project, asetup_root, tags string, verbose bool) (*Setup, error) {
 func (s *Setup) init() error {
 	var err error
 
-	err = s.sh.Chdir(s.topdir)
+	err = s.env.Chdir(s.topdir)
 	if err != nil {
 		return err
 	}
@@ -166,20 +159,39 @@ testarea=<pwd>
 	if err != nil {
 		return err
 	}
+
+	sh, err := shell.New()
+	if err != nil {
+		return err
+	}
+
+	pwd, err := s.env.Getwd()
+	if err != nil {
+		return err
+	}
+	err = sh.Chdir(pwd)
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat(s.asetup)
+	if err != nil {
+		return err
+	}
+
 	// source it
 	args := []string{"--input=" + fname, tags}
 	if s.verbose {
 		fmt.Printf("cmt: sourcing 'asetup %v'...\n", args)
 	}
-	err = s.sh.Source(s.asetup, args...)
+	err = sh.Source(s.asetup, args...)
 	if err != nil {
 		return fmt.Errorf("cmt: error sourcing 'asetup': %v", err)
 	}
-
 	if s.verbose {
 		fmt.Printf("cmt: running 'cmt show path'...\n")
 	}
-	out, err := s.sh.Run("cmt", "show", "path")
+	out, err := sh.Run("cmt", "show", "path")
 	if err != nil {
 		return fmt.Errorf("cmt: error running 'cmt show path': %v", err)
 	}
@@ -187,19 +199,18 @@ testarea=<pwd>
 		fmt.Printf("cmt: 'cmt show path':\n%v\n===EOF===\n", string(out))
 	}
 
+	env := sh.Environ()
+	s.env = newEnv(env)
 	return err
 }
 
 func (s *Setup) Delete() error {
-	return combineErrors(
-		os.RemoveAll(s.topdir),
-		s.sh.Delete(),
-	)
+	var err error
+	if s.remove {
+		err = os.RemoveAll(s.topdir)
+	}
+	return err
 }
-
-// func (s *Setup) Shell() shell.Shell {
-// 	return s.sh
-// }
 
 // Save encodes the current setup in `w` as a JSON dict
 func (s *Setup) Save(w io.Writer) error {
@@ -221,12 +232,12 @@ func (s *Setup) Save(w io.Writer) error {
 // Load restores a setup from `r`
 func (s *Setup) Load(r io.Reader) error {
 	// save current workdir
-	wd, err := s.sh.Getwd()
+	wd, err := s.env.Getwd()
 	if err != nil {
 		return err
 	}
 	// restore workdir
-	defer s.sh.Chdir(wd)
+	defer s.env.Chdir(wd)
 
 	tmp, err := ioutil.TempDir("", "atl-cmt-mgr-load-")
 	if err != nil {
@@ -264,46 +275,20 @@ func (s *Setup) Load(r io.Reader) error {
 		return err
 	}
 
-	return s.sh.Source(fname)
+	sh, err := shell.New()
+	if err != nil {
+		return err
+	}
+	err = sh.Source(fname)
+	if err != nil {
+		return err
+	}
+	s.env = newEnv(sh.Environ())
+	return nil
 }
 
 func (s *Setup) EnvMap() map[string]string {
-	dict := make(map[string]string)
-	for _, env := range s.sh.Environ() {
-		toks := strings.SplitN(env, "=", 2)
-		k := toks[0]
-		v := toks[1]
-		dict[k] = v
-	}
-	return dict
-}
-
-type merror struct {
-	errs []error
-}
-
-func (err merror) Error() string {
-	o := make([]string, 0, len(err.errs))
-	for i, e := range err.errs {
-		o = append(
-			o,
-			fmt.Sprintf("[%d]: %v", i, e),
-		)
-	}
-	return strings.Join(o, "\n")
-}
-
-func combineErrors(errs ...error) error {
-	stack := make([]error, 0, len(errs))
-	for _, err := range errs {
-		if err != nil {
-			stack = append(stack, err)
-		}
-	}
-	if len(stack) == 0 {
-		return nil
-	}
-	return merror{stack}
+	return s.env.EnvMap()
 }
 
 // EOF

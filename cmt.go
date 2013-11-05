@@ -13,38 +13,38 @@ import (
 )
 
 type Cmt struct {
-	env *Setup // environment configured for cmt
+	env Env    // environment configured for cmt
 	bin string // path to cmt.exe
 	msg *logger.Logger
 }
 
-func New(env *Setup) (*Cmt, error) {
+func New(setup *Setup) (*Cmt, error) {
 	var err error
-	if env == nil {
+	if setup == nil {
 		verbose := false
-		env, err = newSetup("<local>", "", "", verbose)
+		setup, err = newSetup("<local>", "", "", verbose)
 		if err != nil {
 			return nil, err
 		}
-		pwd := env.topdir
+		pwd := setup.topdir
 		pwd, err = os.Getwd()
 		if err != nil {
 			return nil, err
 		}
-		err = env.sh.Chdir(pwd)
+		err = setup.env.Chdir(pwd)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	out, err := env.sh.Run("which", "cmt.exe")
+	out, err := setup.env.Command("which", "cmt.exe").CombinedOutput()
 	if err != nil {
 		return nil, err
 	}
 	bin := string(bytes.Trim(out, "\n"))
 
 	cmt := &Cmt{
-		env: env,
+		env: setup.env,
 		bin: bin,
 		msg: logger.New("cmt"),
 	}
@@ -67,7 +67,7 @@ func (cmt *Cmt) CheckOut(pkg, version string) error {
 	if version != "" {
 		args = []string{"co", "-r", version, pkg}
 	}
-	out, err := cmt.env.sh.Run(cmt.bin, args...)
+	out, err := cmt.env.Command(cmt.bin, args...).CombinedOutput()
 	if err != nil {
 		cmt.errorf(
 			"Problem running 'cmt co'. Failed to issue %s %s\n",
@@ -103,7 +103,7 @@ func (cmt *Cmt) debugf(format string, args ...interface{}) {
 func (cmt *Cmt) PackageVersion(pkg string) string {
 	args := []string{"show", "versions", pkg}
 	cmt.debugf("running %v...\n", args)
-	out, err := cmt.env.sh.Run(cmt.bin, args...)
+	out, err := cmt.env.Command(cmt.bin, args...).CombinedOutput()
 	if err != nil {
 		cmt.errorf(
 			"Problem running PackageVersion. Failed to issue %s %s\n",
@@ -117,7 +117,7 @@ func (cmt *Cmt) PackageVersion(pkg string) string {
 	}
 
 	version := []byte("")
-	area := cmt.env.sh.Getenv("TestArea")
+	area := cmt.env.Getenv("TestArea")
 	cmt.debugf("TestArea: %q\n", area)
 	for _, line := range bytes.Split(out, []byte("\n")) {
 		if area != "" && bytes.Index(line, []byte(area)) != -1 {
@@ -133,7 +133,7 @@ func (cmt *Cmt) PackageVersion(pkg string) string {
 func (cmt *Cmt) Show(args ...string) ([]byte, error) {
 	cmt.debugf("running cmt show %v...\n", args)
 	cmdargs := append([]string{"show"}, args...)
-	out, err := cmt.env.sh.Run(cmt.bin, cmdargs...)
+	out, err := cmt.env.Command(cmt.bin, cmdargs...).CombinedOutput()
 	if err != nil {
 		cmt.errorf(
 			"Problem running Show. Failed to issue %s %s\n",
@@ -314,20 +314,20 @@ func (cmt *Cmt) Package(name string) (*Package, error) {
 
 // LatestPackageTag returns the most recent SVN tag of `pkg`
 func (cmt *Cmt) LatestPackageTag(pkg string) (string, error) {
-	svnroot := cmt.env.sh.Getenv("SVNROOT")
+	svnroot := cmt.env.Getenv("SVNROOT")
 	if svnroot == "" {
 		return "", fmt.Errorf("cmt: SVNROOT not set")
 	}
 	args := []string{"ls", strings.Join([]string{svnroot, pkg, "tags"}, "/")}
 	if strings.HasPrefix(pkg, "Gaudi") {
-		svnroot = cmt.env.sh.Getenv("GAUDISVN")
+		svnroot = cmt.env.Getenv("GAUDISVN")
 		if svnroot == "" {
 			svnroot = "http://svnweb.cern.ch/guest/gaudi"
 		}
 		args = []string{"ls", strings.Join([]string{svnroot, "Gaudi", "tags", pkg}, "/")}
 	}
 	cmt.debugf("running svn %v...\n", args)
-	bout, err := cmt.env.sh.Run("svn", args...)
+	bout, err := cmt.env.Command("svn", args...).CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("cmt: error running svn %v:\nout:\n%v\nerr: %v",
 			args,
