@@ -282,7 +282,10 @@ func (s *Setup) Load(r io.Reader) error {
 		return err
 	}
 
-	_, err = s.sh.Source(fname)
+	bout, err := s.sh.Source(fname)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "**error** re-loading environment:\n%v\n", string(bout))
+	}
 	return err
 }
 
