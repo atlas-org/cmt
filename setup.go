@@ -189,9 +189,9 @@ cvmfs = releasesarea=/cvmfs/atlas.cern.ch/software/$CMTCONFIG:/afs/cern.ch/atlas
 	if s.verbose {
 		fmt.Printf("cmt: sourcing 'asetup %v'...\n", args)
 	}
-	err = s.sh.Source(s.asetup, args...)
+	bout, err := s.sh.Source(s.asetup, args...)
 	if err != nil {
-		return fmt.Errorf("cmt: error sourcing 'asetup': %v", err)
+		return fmt.Errorf("cmt: error sourcing 'asetup': %v\n%v", err, string(bout))
 	}
 
 	if s.verbose {
@@ -282,7 +282,8 @@ func (s *Setup) Load(r io.Reader) error {
 		return err
 	}
 
-	return s.sh.Source(fname)
+	_, err = s.sh.Source(fname)
+	return err
 }
 
 func (s *Setup) EnvMap() map[string]string {
