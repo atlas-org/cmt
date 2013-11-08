@@ -275,7 +275,8 @@ func (cmt *Cmt) Package(name string) (*Package, error) {
 				continue
 			}
 			bline = bytes.Trim(bline[len(use):], " \n")
-			if !bytes.HasPrefix(bline, []byte(name)) {
+			toks := bytes.Split(bline, []byte(" "))
+			if !bytes.Equal(toks[0], []byte(name)) {
 				continue
 			}
 			fields := make([]string, 0, 3)
