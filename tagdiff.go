@@ -100,7 +100,7 @@ func TagDiff(old, new string, display, verbose bool) (map[string]map[string]Pack
 			if !ok {
 				diffs[pname] = map[string]Package{
 					a: p_a,
-					b: Package{"None", "None-00-00-00", p_a.Project},
+					b: {"None", "None-00-00-00", p_a.Project},
 				}
 				continue
 			}
@@ -130,7 +130,7 @@ func TagDiff(old, new string, display, verbose bool) (map[string]map[string]Pack
 	fmt.Printf(strings.Repeat("-", 120) + "\n")
 
 	keys := make([]string, 0, len(diffs))
-	for pname, _ := range diffs {
+	for pname := range diffs {
 		keys = append(keys, pname)
 	}
 	sort.Strings(keys)
